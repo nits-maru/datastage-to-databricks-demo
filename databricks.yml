@@ -1,0 +1,30 @@
+bundle:
+  name: datastage-migration-demo
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://community.cloud.databricks.com
+
+resources:
+  jobs:
+    customer_order_transform:
+      name: "Customer Order Transform (migrated from DataStage)"
+
+      job_clusters:
+        - job_cluster_key: main_cluster
+          new_cluster:
+            spark_version: "14.3.x-scala2.12"
+            node_type_id: "i3.xlarge"
+            num_workers: 1
+
+      tasks:
+        - task_key: transform
+          job_cluster_key: main_cluster
+          python_script_task:
+            python_file: src/transform_job.py
+          libraries:
+            - pypi:
+                package: pyspark==3.5.0
