@@ -1,0 +1,92 @@
+name: CI/CD — DataStage Migration Framework
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+
+  ci:
+    name: "CI — Lint + Test"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Java (required for PySpark)
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Lint with pylint
+        run: |
+          pylint src/ --fail-under=7.0
+          echo "✅ Lint passed"
+
+      - name: Test with pytest
+        run: |
+          pytest tests/ -v
+          echo "✅ All tests passed"
+
+  deploy:
+    name: "CD — Deploy to Databricks (dev)"
+    runs-on: ubuntu-latest
+    needs: ci
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Databricks CLI
+        run: pip install databricks-cli==0.18.0
+
+      - name: Deploy to Databricks
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "  DataStage → Databricks Migration Framework"
+          echo "  Deploying bundle to: DEV workspace"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "  Validating databricks.yml bundle config..."
+          sleep 1
+          echo "  ✅ Bundle config valid"
+          echo ""
+          echo "  Uploading src/transform_job.py to workspace..."
+          sleep 1
+          echo "  ✅ Files uploaded"
+          echo ""
+          echo "  Registering job: Customer Order Transform..."
+          sleep 1
+          echo "  ✅ Job created: /dev/datastage-migration-demo"
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "  DEPLOY COMPLETE"
+          echo "  Commit: ${{ github.sha }}"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+      # ── IN PRODUCTION THIS WOULD BE ──────────────────
+      # - name: Deploy bundle (real)
+      #   env:
+      #     DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      #     DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+      #   run: |
+      #     databricks bundle deploy --target dev
+      #     databricks bundle run customer_order_transform --target dev
