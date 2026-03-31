@@ -1,6 +1,6 @@
 terraform {
   cloud {
-    organization = "datastage-migration"
+    organization = "pwc-boeing-test_devops"
 
     workspaces {
       name = "datastage-migration-dev"
